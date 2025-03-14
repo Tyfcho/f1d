@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .calendar-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .event-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 30%;
+            padding: 20px;
+            text-align: center;
+        }
+        .event-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+        .event-card h3 {
+            margin: 10px 0;
+        }
+        .event-card p {
+            margin: 5px 0;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Custom Calendar</h1>
+    <div class="calendar-container" id="calendar-container">
+        <!-- Events will be dynamically inserted here -->
+    </div>
+
+    <script>
+        // Fetch events from local storage
+        const events = JSON.parse(localStorage.getItem('events')) || [];
+
+        // Display events in the custom layout
+        function displayEvents(events) {
+            const container = document.getElementById('calendar-container');
+            container.innerHTML = ''; // Clear previous content
+
+            events.forEach(event => {
+                const eventCard = document.createElement('div');
+                eventCard.className = 'event-card';
+
+                const image = document.createElement('img');
+                image.src = event.image;
+                image.alt = event.title;
+
+                const title = document.createElement('h3');
+                title.textContent = event.title;
+
+                const date = document.createElement('p');
+                date.textContent = `Date: ${event.date}`;
+
+                const time = document.createElement('p');
+                time.textContent = `Time: ${event.time}`;
+
+                const description = document.createElement('p');
+                description.textContent = event.description;
+
+                eventCard.appendChild(image);
+                eventCard.appendChild(title);
+                eventCard.appendChild(date);
+                eventCard.appendChild(time);
+                eventCard.appendChild(description);
+                container.appendChild(eventCard);
+            });
+        }
+
+        // Display events when the page loads
+        displayEvents(events);
+    </script>
+</body>
+</html>
