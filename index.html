@@ -84,7 +84,7 @@
 
   <script>
     // Fetch and display driver standings
-    fetch('http://api.jolpi.ca/ergast/f1/2025/driverstandings')
+    fetch('https://api.jolpi.ca/ergast/f1/2025/driverstandings')
       .then(response => response.json())
       .then(data => {
         const standings = data.MRData.StandingsTable.StandingsLists[0].DriverStandings.slice(0, 5);
@@ -100,7 +100,7 @@
       .catch(error => console.error('Error fetching driver standings:', error));
 
     // Fetch and display constructor standings
-    fetch('http://api.jolpi.ca/ergast/f1/2025/constructorstandings')
+    fetch('https://api.jolpi.ca/ergast/f1/2025/constructorstandings')
       .then(response => response.json())
       .then(data => {
         const standings = data.MRData.StandingsTable.StandingsLists[0].ConstructorStandings.slice(0, 5);
