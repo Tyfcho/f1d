@@ -18,15 +18,15 @@
     }
     .container {
       display: flex;
-      justify-content: space-around;
-      flex-wrap: wrap;
+      justify-content: space-between; /* Ensure space between the two tables */
+      flex-wrap: nowrap; /* Prevent wrapping to the next line */
     }
     .standings {
       background: #fff;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      width: 45%;
+      width: 48%; /* Slightly less than 50% to account for padding and margins */
       margin-bottom: 20px;
     }
     table {
