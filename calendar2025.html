@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2025 F1 Standings and Race Calendar</title>
+  <title>2025 F1 Race Calendar</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,7 +14,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
     }
     h1 {
       text-align: center;
@@ -25,7 +25,7 @@
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      width: 80%;
+      width: 90%;
       max-width: 800px;
     }
     table {
@@ -44,9 +44,6 @@
     tr:hover {
       background-color: #f5f5f5;
     }
-    .race.past {
-      display: none; /* Hide past races */
-    }
     .race.next {
       background-color: #e6f7ff; /* Highlight the next race */
     }
@@ -55,7 +52,7 @@
 <body>
   <div class="calendar">
     <h1>2025 Formula 1 Race Calendar</h1>
-    <h2>Race Calendar</h2>
+    <h2>Upcoming Races</h2>
     <table id="race-calendar">
       <thead>
         <tr>
@@ -81,36 +78,18 @@
         const tbody = document.querySelector('#race-calendar tbody');
         const now = new Date(); // Current date and time
 
-        let nextRaceFound = false;
-        let nextRaces = [];
+        // Filter out past races and get the next 5 upcoming races
+        const upcomingRaces = races
+          .filter(race => new Date(race.date + 'T' + race.time) > now) // Keep only future races
+          .slice(0, 5); // Limit to the next 5 races
 
-        races.forEach(race => {
+        // Populate the table with the upcoming races
+        tbody.innerHTML = upcomingRaces.map((race, index) => {
           const raceDate = new Date(race.date + 'T' + race.time);
-          const isPast = raceDate < now;
-          const isNext = !nextRaceFound && !isPast;
-
-          if (isNext) {
-            nextRaceFound = true; // Mark the next race as found
-          }
-
-          if (!isPast || isNext) {
-            nextRaces.push(race);
-          }
-        });
-
-        nextRaces = nextRaces.slice(0, 5); // Show only the next 5 races
-
-        tbody.innerHTML = nextRaces.map(race => {
-          const raceDate = new Date(race.date + 'T' + race.time);
-          const isPast = raceDate < now;
-          const isNext = !nextRaceFound && !isPast;
-
-          if (isNext) {
-            nextRaceFound = true; // Mark the next race as found
-          }
+          const isNext = index === 0; // Highlight the very next race
 
           return `
-            <tr class="race ${isPast ? 'past' : ''} ${isNext ? 'next' : ''}">
+            <tr class="race ${isNext ? 'next' : ''}">
               <td>${race.round}</td>
               <td>${race.raceName}</td>
               <td>${race.date}</td>
