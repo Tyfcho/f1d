@@ -11,23 +11,22 @@
       color: #333;
       margin: 0;
       padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
     h1 {
       text-align: center;
       color: #2eb235;
     }
-    .container {
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: nowrap;
-      gap: 20px; /* Add gap between sections */
-    }
-    .standings, .calendar {
+    .calendar {
       background: #fff;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      width: 48%;
+      width: 80%;
+      max-width: 800px;
     }
     table {
       width: 100%;
@@ -54,8 +53,8 @@
   </style>
 </head>
 <body>
-  <h1>2025 Formula 1 Race Calendar</h1>
   <div class="calendar">
+    <h1>2025 Formula 1 Race Calendar</h1>
     <h2>Race Calendar</h2>
     <table id="race-calendar">
       <thead>
@@ -83,8 +82,25 @@
         const now = new Date(); // Current date and time
 
         let nextRaceFound = false;
+        let nextRaces = [];
 
-        tbody.innerHTML = races.map(race => {
+        races.forEach(race => {
+          const raceDate = new Date(race.date + 'T' + race.time);
+          const isPast = raceDate < now;
+          const isNext = !nextRaceFound && !isPast;
+
+          if (isNext) {
+            nextRaceFound = true; // Mark the next race as found
+          }
+
+          if (!isPast || isNext) {
+            nextRaces.push(race);
+          }
+        });
+
+        nextRaces = nextRaces.slice(0, 5); // Show only the next 5 races
+
+        tbody.innerHTML = nextRaces.map(race => {
           const raceDate = new Date(race.date + 'T' + race.time);
           const isPast = raceDate < now;
           const isNext = !nextRaceFound && !isPast;
