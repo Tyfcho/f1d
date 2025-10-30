@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EFT-QTAPI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #c91f1f;
+    }
+    .container {
+      display: flex;
+      justify-content: space-between; /* Ensure space between the two tables */
+      flex-wrap: nowrap; /* Prevent wrapping to the next line */
+    }
+    .efteling {
+      background: #7c747480;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      width: 48%; /* Slightly less than 50% to account for padding and margins */
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #c91f1f;
+      color: #fff;
+    }
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+  <h1>EFT-QTAPI</h1>
+<div class="container">
+  <div class="efteling">
+    <h2>Powered by <a href="https://queue-times.com" target="_blank">queue-times.com</a></h2>
+    <table id="efteltimes">
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Attraction</th>
+          <th>Wait time (min)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Attractions will be populated here -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Fetch and display Efteling queue times
+  fetch('https://queue-times.com/parks/160/queue_times.json')
+    .then(response => {
+      if (!response.ok) throw new Error('Network response was not ok');
+      return response.json();
+    })
+    .then(data => {
+      const tbody = document.querySelector('#efteltimes tbody');
+      tbody.innerHTML = ''; // Clear existing rows
+
+      // Loop through all areas (lands)
+      data.lands.forEach(land => {
+        land.rides.forEach(ride => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${land.name}</td>
+              <td>${ride.name}</td>
+              <td>${ride.wait_time !== null ? ride.wait_time + ' min' : 'Closed'}</td>
+            </tr>
+          `;
+        });
+      });
+    })
+    .catch(error => console.error('Error fetching queue times:', error));
+</script>
+</body>
+</html>
