@@ -69,7 +69,7 @@
 
 <script>
   // Fetch and display Efteling queue times
-  fetch('https://queue-times.com/parks/160/queue_times.json')
+  fetch('https://api.allorigins.win/raw?url=https://queue-times.com/parks/160/queue_times.json')
     .then(response => {
       if (!response.ok) throw new Error('Network response was not ok');
       return response.json();
