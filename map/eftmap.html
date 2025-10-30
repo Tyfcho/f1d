@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EFT-QTAPI - Map with Queue Times</title>
+  <title>EFT-QTAPI – Wachttijden op de kaart</title>
   <style>
     body {
       margin: 0;
@@ -18,6 +18,7 @@
       text-align: center;
       color: #c91f1f;
       margin: 15px 0;
+      font-size: 2em;
       font-weight: bold;
     }
     #container {
@@ -35,10 +36,11 @@
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       overflow: hidden;
-      background-image: url('https://cdn.efteling.com/media/2023/04/Efteling-parkmap-2023.jpg'); /* example Efteling map */
-      background-size: cover;
+      background-image: url('https://www.efteling.com/-/media/efteling/map/2023/efteling-plattegrond-2023.jpg');
+      background-size: contain;
+      background-repeat: no-repeat;
       background-position: center;
-      aspect-ratio: 16 / 9;
+      aspect-ratio: 1.4;
       min-width: 300px;
     }
     .marker {
@@ -46,16 +48,17 @@
       background-color: #c91f1fcc;
       color: white;
       font-weight: bold;
-      padding: 5px 10px;
+      padding: 4px 8px;
       border-radius: 12px;
       font-size: 14px;
       white-space: nowrap;
       user-select: none;
-      cursor: default;
-      border: 2px solid white;
-      box-shadow: 0 0 5px rgba(0,0,0,0.3);
       transform: translate(-50%, -50%);
+      border: 2px solid white;
+      box-shadow: 0 0 4px rgba(0,0,0,0.3);
+      cursor: default;
       transition: background-color 0.3s;
+      pointer-events: auto;
     }
     .marker.closed {
       background-color: #666;
@@ -89,23 +92,30 @@
       border-bottom: 1px solid #eee;
       padding-bottom: 8px;
       font-weight: 600;
-      cursor: default;
+    }
+    @media (max-width: 768px) {
+      #container {
+        flex-direction: column;
+      }
+      #map-container {
+        aspect-ratio: auto;
+        min-height: 300px;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>EFT-QTAPI - Queue Times Map</h1>
+  <h1>EFT-QTAPI – Wachttijden op de kaart</h1>
   <div id="container">
     <div id="map-container"></div>
     <div id="queueList">
-      <h2>Queue Times List</h2>
+      <h2>Wachttijdenlijst</h2>
       <ul id="list"></ul>
     </div>
   </div>
 
   <script>
-    // Hardcoded attraction coordinates on the map image in percentages (top, left)
-    // Adjust these percentages to position markers exactly on your map image.
+    // Coordinates (top%, left%) approximate to official Efteling map locations
     const attractionPositions = {
       "Baron 1898": {top: 37, left: 52},
       "Vogel Rok": {top: 34, left: 51},
@@ -116,7 +126,33 @@
       "Joris en de Draak": {top: 38, left: 53},
       "Villa Volta": {top: 47, left: 49.5},
       "Carnaval Festival": {top: 44, left: 50},
-      "Halve Maen": {top: 37, left: 56}
+      "Halve Maen": {top: 37, left: 56},
+
+      // Additional attractions, rough placements:
+      "Pirana": {top: 33, left: 52.5},
+      "De Vliegende Hollander (boat)": {top: 40, left: 54.5},
+      "Pagoda": {top: 41, left: 55},
+      "Monsieur Cannibale": {top: 44, left: 47.5},
+      "Aquanura": {top: 55, left: 50},
+      "Symbolica": {top: 44, left: 49.5},
+      "Spookslot": {top: 49, left: 50},
+      "Python": {top: 29, left: 57},
+      "Halve Maen": {top: 37, left: 56},
+      "Bobbaan": {top: 45, left: 51},
+      "Polka Marina": {top: 30, left: 51.5},
+      "Carnaval Festival": {top: 44, left: 50},
+      "Vogel Rok": {top: 34, left: 51},
+      "Snorretje": {top: 35, left: 52},
+      "Villa Volta": {top: 47, left: 49.5},
+      "Langnek": {top: 48, left: 46},
+      "Max & Moritz": {top: 31, left: 54},
+      "Nest": {top: 31, left: 53},
+      "Fabula": {top: 30, left: 55},
+      "Raveleijn": {top: 36, left: 50},
+      "Sprookjesbos": {top: 42, left: 48.5},
+      "Stoomcarrousel": {top: 45, left: 48.8},
+      "Vogel Rok": {top: 34, left: 51},
+      "Vogel Rok Entrance": {top: 33.5, left: 51.1}
     };
 
     const mapContainer = document.getElementById('map-container');
@@ -128,15 +164,14 @@
       if (waitTime === null) marker.classList.add('closed');
       marker.style.top = topPercent + '%';
       marker.style.left = leftPercent + '%';
-      marker.title = name + ": " + (waitTime !== null ? waitTime + " min" : "Closed");
-      marker.textContent = waitTime !== null ? waitTime + " min" : "Closed";
+      marker.title = name + ": " + (waitTime !== null ? waitTime + " min" : "Gesloten");
+      marker.textContent = waitTime !== null ? waitTime + " min" : "Gesloten";
       return marker;
     }
 
-    function updateMarkers(data) {
+    function updateMapMarkers(data) {
       // Remove old markers
-      const oldMarkers = mapContainer.querySelectorAll('.marker');
-      oldMarkers.forEach(m => m.remove());
+      mapContainer.querySelectorAll('.marker').forEach(m => m.remove());
 
       data.lands.forEach(land => {
         land.rides.forEach(ride => {
@@ -153,7 +188,7 @@
       list.innerHTML = '';
       data.lands.forEach(land => {
         land.rides.forEach(ride => {
-          const waitText = ride.wait_time !== null ? `${ride.wait_time} min` : "Closed";
+          const waitText = ride.wait_time !== null ? `${ride.wait_time} min` : "Gesloten";
           const li = document.createElement('li');
           li.textContent = `${ride.name} (${land.name}): ${waitText}`;
           list.appendChild(li);
@@ -168,18 +203,16 @@
           return response.json();
         })
         .then(data => {
-          updateMarkers(data);
+          updateMapMarkers(data);
           updateList(data);
         })
         .catch(err => {
           console.error("Error fetching queue times:", err);
-          alert("Failed to load queue times. Please try again later.");
+          alert("Kon de wachttijden niet laden. Probeer later opnieuw.");
         });
     }
 
     fetchQueueTimes();
-
-    // Optional: refresh queue times every 2 minutes
     setInterval(fetchQueueTimes, 120000);
   </script>
 </body>
