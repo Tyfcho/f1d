@@ -283,14 +283,14 @@
                 const f = v => (Math.round(v * 10) / 10).toString().replace('.', ',');
                 let mm = '';
                 if (Number.isFinite(mmMax)) {
-                    mm = mmMax < 0.1 ? 'droog'
+                    mm = mmMax < 0.1 ? '0 mm'
                         : (Number.isFinite(mmMin) && mmMin >= 0.1 && mmMin < mmMax ? f(mmMin) + '–' + f(mmMax) : f(mmMax)) + ' mm';
                 }
                 return `<div class="day">
                 <span class="dname">${dayName(d.day)}</span>
                 <span class="dicon">${iconFor(desc)}</span>
                 <span class="dtemp"><i>${num(min, 0)}°</i>${num(max, 0)}°</span>
-                <span class="drain">${rain != null ? '💧 ' + rain + '%' : '&nbsp;'}<small>${mm || '&nbsp;'}</small></span>
+                <span class="drain">${rain != null ? '💧 ' + rain + '%' : '&nbsp;'}<small>${mm || '0 mm'}</small></span>
             </div>`;
             }).join('');
         } catch (e) {
@@ -403,8 +403,7 @@
         const rainSum = pts.slice(0, step === 900 ? 12 : 3).reduce((a, p) => a + (p.rain || 0), 0);
         const tmin = Math.round(Math.min(...temps)), tmax = Math.round(Math.max(...temps));
         document.getElementById('chartsummary').innerHTML =
-            '<b>' + (tmin === tmax ? tmin + '°' : tmin + '° – ' + tmax + '°') + '</b> &nbsp;·&nbsp; ' +
-            (rainSum < 0.05 ? '<i>droog</i>' : '<i>' + nl(rainSum, 1) + ' mm</i>');
+            '<b>' + (tmin === tmax ? tmin + '°' : tmin + '° – ' + tmax + '°') + '</b> &nbsp;·&nbsp; <i>' + nl(rainSum, 1) + ' mm</i>';
     }
 
     const RADAR_MODE = 'gadget';
