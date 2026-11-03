@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Weer in Breda</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --text: #1a1a1a;
+            --muted: #666666;
+            --line: rgba(0, 0, 0, 0.12);
+            --chip: rgba(0, 0, 0, 0.04);
+            /* Hoofdkleur (Kropman-groen): pas alleen deze twee regels aan voor de exacte huisstijlkleur */
+            --brand-rgb: 63, 174, 73;
+            --brand-light: #2b7a33;
+            --rain: #0077cc;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%; margin: 0; overflow: hidden;
+            font: 16px/1.25 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            color: var(--text);
+            user-select: none; cursor: none;
+            background: #ffffff;
+            font-variant-numeric: tabular-nums;
+        }
+        [hidden] { display: none !important; }
+        a { pointer-events: none; text-decoration: none; color: inherit; }
+
+        .app {
+            width: 100vw; height: 100vh;
+            display: grid;
+            grid-template-rows: minmax(0, 1fr);
+            padding: 1.6vh 1.2vw;
+        }
+
+        /* ---------- Glas / Vlak styling voor witte achtergrond ---------- */
+        .glass {
+            position: relative;
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: 2.6vh;
+            box-shadow: 0 0.8vh 2.4vh rgba(0, 0, 0, 0.06);
+            min-width: 0; min-height: 0; overflow: hidden;
+        }
+        .card { display: flex; flex-direction: column; padding: 1.8vh 1.3vw 3vh; }
+        .card > h2 {
+            margin: 0 0 1vh; font-size: clamp(.7rem, 1.5vh, 1rem); font-weight: 600;
+            text-transform: uppercase; letter-spacing: .14em; color: var(--muted);
+        }
+        .src {
+            position: absolute; right: 1.1vw; bottom: .9vh;
+            font-size: clamp(.58rem, 1.1vh, .78rem); color: var(--muted); opacity: .7;
+        }
+
+        /* ---------- Hoofdgrid ---------- */
+        .grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.2vw; min-height: 0; width: 100%; height: 100%; }
+        .grid.imagemode { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+        .left { display: grid; grid-template-rows: minmax(0, 1.45fr) minmax(0, 1fr); gap: 1.4vh; min-height: 0; }
+
+        /* ---------- Nu ---------- */
+        .nowbody { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.2vh; }
+        .nowtop { display: flex; align-items: center; justify-content: space-between; gap: 2vw; }
+        .currentrow { display: flex; align-items: center; gap: 1.6vw; min-width: 0; }
+        .weathericon { font-size: clamp(3rem, 11vh, 8rem); line-height: 1; filter: drop-shadow(0 .4vh 1vh rgba(0, 0, 0, 0.15)); }
+        .currenttemp { font-size: clamp(3.2rem, 14vh, 10rem); line-height: .9; font-weight: 200; letter-spacing: -.05em; color: #111; }
+        .currenttemp .dec { font-size: .42em; font-weight: 300; letter-spacing: 0; margin-left: .04em; vertical-align: baseline; opacity: .85; }
+        .currentdesc { font-size: clamp(1rem, 2.8vh, 1.9rem); font-weight: 500; color: var(--muted); margin-top: .6vh; }
+
+        .metrics {
+            flex: 0 0 auto; width: clamp(150px, 17vw, 330px);
+            display: flex; flex-direction: column;
+            background: var(--chip); border: 1px solid var(--line); border-radius: 2vh;
+            padding: .4vh 1vw;
+        }
+        .metric { display: flex; align-items: baseline; justify-content: space-between; gap: 1vw; padding: 1vh 0; }
+        .metric + .metric { border-top: 1px solid var(--line); }
+        .metric small { font-size: clamp(.72rem, 1.5vh, 1rem); color: var(--muted); letter-spacing: .02em; }
+        .metric b { font-size: clamp(1.05rem, 2.8vh, 2rem); font-weight: 600; white-space: nowrap; color: #111; }
+        .metric b em { font-style: normal; font-weight: 400; font-size: .6em; color: var(--muted); margin-left: .2em; }
+
+        .chartwrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .6vh; border-top: 1px solid var(--line); padding-top: 1.1vh; }
+        .charthead { display: flex; justify-content: space-between; align-items: baseline; gap: 1vw; }
+        .charthead .t { font-size: clamp(.7rem, 1.5vh, 1rem); font-weight: 600; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+        .charthead .s { font-size: clamp(.85rem, 1.9vh, 1.3rem); font-weight: 500; color: var(--text); }
+        .charthead .s b { color: var(--brand-light); font-weight: 600; }
+        .charthead .s i { font-style: normal; color: var(--rain); font-weight: 600; }
+        #chart { flex: 1; min-height: 0; position: relative; }
+        #chart svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+
+        /* ---------- Verwachting ---------- */
+        .days { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .8vw; }
+        .day {
+            display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
+            background: var(--chip); border: 1px solid var(--line); border-radius: 2.2vh;
+            padding: 1vh .4vw; min-height: 0; text-align: center;
+        }
+        .day:first-child { background: rgba(var(--brand-rgb), .1); border-color: rgba(var(--brand-rgb), .4); }
+        .day .dname { font-weight: 600; text-transform: capitalize; font-size: clamp(.95rem, 2.4vh, 1.7rem); color: #111; }
+        .day .dicon { font-size: clamp(2rem, 6vh, 4.2rem); line-height: 1; }
+        .day .dtemp { font-weight: 600; font-size: clamp(1.1rem, 3.1vh, 2.3rem); white-space: nowrap; color: #111; }
+        .day .dtemp i { font-style: normal; color: var(--muted); font-weight: 400; margin-right: .35em; }
+        .day .drain { color: var(--rain); font-size: clamp(.8rem, 1.9vh, 1.35rem); font-weight: 600; line-height: 1.2; }
+        .day .drain small { display: block; font-size: .78em; font-weight: 500; opacity: .85; }
+
+        /* ---------- Radar ---------- */
+        .mapcard { display: flex; flex-direction: column; padding: 1.8vh 1vw 3vh; }
+        .mapcard > h2 { padding-left: .3vw; }
+        #radarframe {
+            flex: 1; min-height: 0; background: #fff; position: relative;
+            border: 1px solid var(--line); border-radius: 1.8vh; overflow: hidden;
+            box-shadow: 0 0.5vh 1.5vh rgba(0, 0, 0, 0.05);
+        }
+        #radarimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
+        #radariframe {
+            position: absolute; top: 50%; left: 50%;
+            width: 550px; height: 512px; border: 0;
+            transform-origin: center center;
+            transform: translate(-50%, -50%);
+            pointer-events: none; /* niet bedienbaar */
+        }
+
+        .loading { color: var(--muted); }
+        .error { color: #d32f2f; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="grid">
+        <div class="left">
+            <section class="glass card">
+                <h2>Nu</h2>
+                <div class="nowbody">
+                    <div class="nowtop" id="current"><span class="loading">Actuele weerdata ophalen…</span></div>
+                    <div class="chartwrap">
+                        <div class="charthead">
+                            <span class="t">Komende 3 uur</span>
+                            <span class="s" id="chartsummary"></span>
+                        </div>
+                        <div id="chart"><span class="loading">Verwachting laden…</span></div>
+                    </div>
+                </div>
+                <span class="src" id="nowsrc">Bron: Buienradar · Open-Meteo</span>
+            </section>
+
+            <section class="glass card">
+                <h2>Komende dagen</h2>
+                <div id="forecast" class="loading">Verwachting laden…</div>
+                <span class="src">Bron: Buienradar</span>
+            </section>
+        </div>
+
+        <section class="glass mapcard" id="mapcard">
+            <h2>Neerslagradar</h2>
+            <div id="radarframe">
+                <img id="radarimg" alt="Buienradar neerslagradar">
+                <iframe id="radariframe" title="Buienradar neerslagradar" scrolling="no" tabindex="-1" hidden></iframe>
+            </div>
+            <span class="src">Bron: Buienradar · update elke 5 min</span>
+        </section>
+    </div>
+</div>
+
+<script>
+    const BR_FEED = 'https://data.buienradar.nl/2.0/feed/json';
+    const HOME = { lat: 51.58656, lng: 4.77596 };
+    const OPEN_METEO = 'https://api.open-meteo.com/v1/forecast?latitude=' + HOME.lat + '&longitude=' + HOME.lng +
+        '&minutely_15=temperature_2m,precipitation&hourly=temperature_2m,precipitation' +
+        '&timeformat=unixtime&timezone=Europe%2FAmsterdam&forecast_hours=6&forecast_minutely_15=24';
+    const RADAR_URL = 'https://gadgets.buienradar.nl/gadget/zoommap/?lat=51.58656&lng=4.77596&overname=2&zoom=8&naam=Breda&size=3&voor=1&forecast=3';
+
+    const brCurrent = document.getElementById('current');
+    const forecastEl = document.getElementById('forecast');
+    const chartEl = document.getElementById('chart');
+
+    const iconFor = (text = '') => {
+        text = text.toLowerCase();
+        if (/onweer|bliksem/.test(text)) return '⛈️';
+        if (/regen|buien|nat/.test(text)) return '🌧️';
+        if (/sneeuw|ijzel/.test(text)) return '🌨️';
+        if (/mist|nevel/.test(text)) return '🌫️';
+        if (/zwaar bewolkt|bewolkt|wolken|grijs/.test(text)) return '☁️';
+        if (/half|licht bewolkt|opklar|wolkenvelden/.test(text)) return '⛅';
+        if (/zon|helder/.test(text)) return '☀️';
+        return '🌤️';
+    };
+
+    const val = (obj, ...keys) => {
+        for (const k of keys) if (obj && obj[k] != null) return obj[k];
+        return null;
+    };
+
+    function num(v, d = 1) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n.toFixed(d) : '—';
+    }
+    const nl = (v, d = 1) => num(v, d).replace('.', ',');
+
+    function bigTemp(v) {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return '—°';
+        const s = Math.abs(n).toFixed(1), [i, f] = s.split('.');
+        return (n < 0 ? '−' : '') + i + '<span class="dec">,' + f + '°</span>';
+    }
+
+    function setError(el, msg) { el.innerHTML = '<p class="error">' + msg + '</p>'; }
+
+    function distance(lat1, lon1, lat2, lon2) {
+        return Math.hypot((Number(lat1) - lat2) * 111, (Number(lon1) - lon2) * 70);
+    }
+
+    function dayName(iso) {
+        const d = new Date(iso);
+        if (isNaN(d)) return '—';
+        if (d.toDateString() === new Date().toDateString()) return 'Vandaag';
+        return d.toLocaleDateString('nl-NL', { weekday: 'short' }).replace('.', '');
+    }
+
+    async function loadBuienradar() {
+        let data;
+        try {
+            const r = await fetch(BR_FEED, { cache: 'no-store' });
+            if (!r.ok) throw Error('HTTP ' + r.status);
+            data = await r.json();
+        } catch (e) {
+            setError(brCurrent, 'Actuele data niet beschikbaar.');
+            setError(forecastEl, 'Verwachting niet beschikbaar.');
+            return;
+        }
+
+        try {
+            const stations = data.actual?.stationmeasurements || [];
+            const station = stations.find(s => /breda/i.test(s.stationname || s.station || '')) ||
+                stations.sort((a, b) =>
+                    distance(a.latitude, a.longitude, HOME.lat, HOME.lng) -
+                    distance(b.latitude, b.longitude, HOME.lat, HOME.lng)
+                )[0];
+            if (!station) throw Error('Geen station gevonden');
+
+            const temp = val(station, 'temperature', 'temperatureC');
+            const feel = val(station, 'feeltemperature', 'feelTemperature');
+            const wind = val(station, 'windspeed', 'windSpeed');
+            const gust = val(station, 'windgusts', 'windGusts');
+            const desc = val(station, 'weatherdescription', 'weatherDescription') || 'Actuele meting';
+            const rainHr = Number(val(station, 'rainFallLastHour', 'rainfalllasthour', 'precipitation'));
+            const rainRow = Number.isFinite(rainHr)
+                ? `<div class="metric"><small>Regen (laatste uur)</small><b>${nl(rainHr)}<em>mm</em></b></div>` : '';
+
+            brCurrent.className = 'nowtop';
+            brCurrent.innerHTML = `
+          <div class="currentrow">
+            <div class="weathericon">${iconFor(desc)}</div>
+            <div>
+              <div class="currenttemp">${bigTemp(temp)}</div>
+              <div class="currentdesc">${desc}</div>
+            </div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><small>Gevoel</small><b>${nl(feel)}°</b></div>
+            <div class="metric"><small>Wind</small><b>${nl(wind)}<em>m/s</em></b></div>
+            <div class="metric"><small>Windstoten</small><b>${nl(gust)}<em>m/s</em></b></div>
+            ${rainRow}
+          </div>`;
+            document.getElementById('nowsrc').textContent =
+                'Bron: Buienradar (' + (station.stationname || 'dichtstbijzijnd station') + ') · Open-Meteo · ' +
+                new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+            setError(brCurrent, 'Actuele data niet beschikbaar.');
+        }
+
+        try {
+            const days = (data.forecast?.fivedayforecast || []).slice(0, 5);
+            if (!days.length) throw Error('Geen verwachting');
+
+            forecastEl.className = 'days';
+            forecastEl.innerHTML = days.map(d => {
+                const desc = val(d, 'weatherdescription', 'weatherDescription') || '';
+                const min = val(d, 'mintemperatureMax', 'mintemperature', 'mintemperatureMin');
+                const max = val(d, 'maxtemperatureMax', 'maxtemperature', 'maxtemperatureMin');
+                const rain = val(d, 'rainChance');
+                const mmMin = Number(val(d, 'mmRainMin')), mmMax = Number(val(d, 'mmRainMax'));
+                const f = v => (Math.round(v * 10) / 10).toString().replace('.', ',');
+                let mm = '';
+                if (Number.isFinite(mmMax)) {
+                    mm = mmMax < 0.1 ? 'droog'
+                        : (Number.isFinite(mmMin) && mmMin >= 0.1 && mmMin < mmMax ? f(mmMin) + '–' + f(mmMax) : f(mmMax)) + ' mm';
+                }
+                return `<div class="day">
+                <span class="dname">${dayName(d.day)}</span>
+                <span class="dicon">${iconFor(desc)}</span>
+                <span class="dtemp"><i>${num(min, 0)}°</i>${num(max, 0)}°</span>
+                <span class="drain">${rain != null ? '💧 ' + rain + '%' : '&nbsp;'}<small>${mm || '&nbsp;'}</small></span>
+            </div>`;
+            }).join('');
+        } catch (e) {
+            setError(forecastEl, 'Verwachting niet beschikbaar.');
+        }
+    }
+
+    let chartPoints = null;
+
+    async function loadShortTerm() {
+        try {
+            const r = await fetch(OPEN_METEO, { cache: 'no-store' });
+            if (!r.ok) throw Error('HTTP ' + r.status);
+            const j = await r.json();
+
+            let src = j.minutely_15, step = 900;
+            if (!src?.time?.length) { src = j.hourly; step = 3600; }
+            if (!src?.time?.length) throw Error('Geen data');
+
+            const nowSec = Date.now() / 1000;
+            const start = Math.floor(nowSec / step) * step;
+            const end = start + 3 * 3600;
+            const pts = [];
+            src.time.forEach((t, i) => {
+                if (t >= start && t <= end) {
+                    pts.push({ t, temp: src.temperature_2m[i], rain: src.precipitation?.[i] ?? 0 });
+                }
+            });
+            if (pts.length < 2) throw Error('Te weinig punten');
+            chartPoints = { pts, step };
+            drawChart();
+        } catch (e) {
+            console.warn('Open-Meteo:', e);
+            chartPoints = null;
+            chartEl.innerHTML = '<span class="error">Verwachting komende uren niet beschikbaar.</span>';
+            document.getElementById('chartsummary').textContent = '';
+        }
+    }
+
+    function drawChart() {
+        if (!chartPoints) return;
+        const W = chartEl.clientWidth, H = chartEl.clientHeight;
+        if (W < 50 || H < 50) return;
+
+        const { pts, step } = chartPoints;
+        const fs = Math.max(11, Math.min(22, H * 0.095));
+        const labelH = fs * 1.7;
+        const topPad = fs * 2;
+        const rainH = H * 0.2;
+        const padX = fs * 1.2;
+        const yBottom = H - labelH - rainH - fs * .4;
+        const rainBase = H - labelH;
+
+        const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+        const x = t => padX + (t - t0) / (t1 - t0) * (W - 2 * padX);
+
+        const temps = pts.map(p => p.temp);
+        let lo = Math.min(...temps), hi = Math.max(...temps);
+        if (hi - lo < 2) { const m = (hi + lo) / 2; lo = m - 1; hi = m + 1; }
+        const pad = (hi - lo) * .2;
+        lo -= pad; hi += pad;
+        const y = v => topPad + (hi - v) / (hi - lo) * (yBottom - topPad);
+
+        let d = 'M' + x(pts[0].t) + ',' + y(pts[0].temp);
+        for (let i = 1; i < pts.length; i++) {
+            const x0 = x(pts[i - 1].t), y0 = y(pts[i - 1].temp), x1 = x(pts[i].t), y1 = y(pts[i].temp), mx = (x0 + x1) / 2;
+            d += ` C${mx},${y0} ${mx},${y1} ${x1},${y1}`;
+        }
+        const area = d + ` L${x(t1)},${yBottom + fs * .3} L${x(t0)},${yBottom + fs * .3} Z`;
+
+        const maxRain = Math.max(1, ...pts.map(p => p.rain));
+        const bw = Math.max(3, (W - 2 * padX) / (pts.length - 1) * .62);
+        let bars = '';
+        pts.forEach(p => {
+            const h = p.rain > 0 ? Math.max(2, p.rain / maxRain * rainH) : 0;
+            if (h) bars += `<rect x="${x(p.t) - bw / 2}" y="${rainBase - h}" width="${bw}" height="${h}" rx="${Math.min(bw / 2, 4)}" fill="url(#rg)"/>`;
+        });
+
+        let marks = '', xl = '';
+        pts.forEach((p, i) => {
+            const dt = new Date(p.t * 1000);
+            const full = dt.getMinutes() === 0;
+            if (i === 0 || full) {
+                const cx = x(p.t), cy = y(p.temp);
+                const anchor = i === 0 ? 'start' : (i === pts.length - 1 ? 'end' : 'middle');
+                const lx = i === 0 ? cx - fs * .4 : (i === pts.length - 1 ? cx + fs * .4 : cx);
+                marks += `<line x1="${cx}" x2="${cx}" y1="${cy}" y2="${rainBase}" stroke="rgba(0,0,0,.15)" stroke-dasharray="3 5"/>` +
+                    `<circle cx="${cx}" cy="${cy}" r="${fs * .32}" fill="#ffffff" stroke="#2b7a33" stroke-width="${fs * .16}"/>` +
+                    `<text x="${lx}" y="${cy - fs * .9}" text-anchor="${anchor}" font-size="${fs * 1.15}" font-weight="600" fill="#111">${Math.round(p.temp)}°</text>`;
+                const lab = i === 0 ? 'nu' : dt.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+                xl += `<text x="${lx}" y="${H - fs * .25}" text-anchor="${anchor}" font-size="${fs}" fill="#666">${lab}</text>`;
+            }
+        });
+
+        chartEl.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" font-family="inherit">
+        <defs>
+          <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#3fae49" stop-opacity=".25"/><stop offset="1" stop-color="#3fae49" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#3aa6ff"/><stop offset="1" stop-color="#0077cc"/>
+          </linearGradient>
+        </defs>
+        <line x1="${padX}" x2="${W - padX}" y1="${rainBase}" y2="${rainBase}" stroke="rgba(0,0,0,.15)"/>
+        <path d="${area}" fill="url(#ag)"/>
+        <path d="${d}" fill="none" stroke="#3fae49" stroke-width="${Math.max(2.5, fs * .2)}" stroke-linecap="round" stroke-linejoin="round"/>
+        ${bars}${marks}${xl}
+    </svg>`;
+
+        const rainSum = pts.slice(0, step === 900 ? 12 : 3).reduce((a, p) => a + (p.rain || 0), 0);
+        const tmin = Math.round(Math.min(...temps)), tmax = Math.round(Math.max(...temps));
+        document.getElementById('chartsummary').innerHTML =
+            '<b>' + (tmin === tmax ? tmin + '°' : tmin + '° – ' + tmax + '°') + '</b> &nbsp;·&nbsp; ' +
+            (rainSum < 0.05 ? '<i>droog</i>' : '<i>' + nl(rainSum, 1) + ' mm</i>');
+    }
+
+    const RADAR_MODE = 'gadget';
+    const radarIframe = document.getElementById('radariframe');
+    const radarImg = document.getElementById('radarimg');
+    const radarFrame = document.getElementById('radarframe');
+    const mapCard = document.getElementById('mapcard');
+    const RADAR_W = 550, RADAR_H = 512;
+    let radarKey = '';
+
+    function radarImageUrl(w, h) {
+        return 'https://image.buienradar.nl/2.0/image/single/RadarMapRainNL?height=' + h + '&width=' + w +
+            '&renderBackground=True&renderBranding=True&renderText=True&_=' + Date.now();
+    }
+
+    function refreshRadar() {
+        if (RADAR_MODE === 'gadget') {
+            radarIframe.src = RADAR_URL + '&_=' + Date.now();
+            return;
+        }
+        const w = Math.max(200, Math.round(radarFrame.clientWidth)), h = Math.max(200, Math.round(radarFrame.clientHeight));
+        radarKey = w + 'x' + h;
+        radarImg.src = radarImageUrl(w, h);
+    }
+
+    radarImg.addEventListener('error', () => {
+        if (!radarImg.dataset.retry) { radarImg.dataset.retry = '1'; radarImg.src = radarImageUrl(RADAR_W, RADAR_H); }
+    });
+    radarImg.addEventListener('load', () => { delete radarImg.dataset.retry; });
+
+    function fitRadar() {
+        if (RADAR_MODE === 'gadget') {
+            const h = radarFrame.clientHeight;
+            if (!h) return;
+            const extra = mapCard.clientWidth - radarFrame.clientWidth;
+            mapCard.style.width = Math.round(h * RADAR_W / RADAR_H + Math.max(extra, 0)) + 'px';
+            const sc = Math.min(radarFrame.clientWidth / RADAR_W, radarFrame.clientHeight / RADAR_H);
+            radarIframe.style.transform = 'translate(-50%, -50%) scale(' + sc + ')';
+            return;
+        }
+        const key = Math.round(radarFrame.clientWidth) + 'x' + Math.round(radarFrame.clientHeight);
+        if (radarFrame.clientWidth > 50 && key !== radarKey) refreshRadar();
+    }
+
+    if (RADAR_MODE === 'gadget') {
+        radarImg.hidden = true; radarIframe.hidden = false;
+        refreshRadar();
+    } else {
+        document.querySelector('.grid').classList.add('imagemode');
+    }
+
+    function relayout() { fitRadar(); drawChart(); }
+    window.addEventListener('resize', () => { relayout(); requestAnimationFrame(relayout); });
+
+    requestAnimationFrame(() => { relayout(); requestAnimationFrame(relayout); });
+    loadBuienradar();
+    loadShortTerm();
+
+    setInterval(loadBuienradar, 5 * 60 * 1000);
+    setInterval(loadShortTerm, 10 * 60 * 1000);
+    setInterval(drawChart, 60 * 1000);
+    setInterval(refreshRadar, 5 * 60 * 1000);
+    setInterval(() => location.reload(), 60 * 60 * 1000);
+</script>
+</body>
+</html>
