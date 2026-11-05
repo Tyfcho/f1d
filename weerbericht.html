@@ -67,9 +67,17 @@
         .weathericon {
             font-size: clamp(3rem, 11vh, 8rem);
             line-height: 1;
-            font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+            color: var(--brand-light);
             filter: drop-shadow(0 .4vh 1vh rgba(0, 0, 0, 0.15));
         }
+        .weather-svg { display: block; width: 1em; height: 1em; overflow: visible; }
+        .weather-svg .cloud { fill: #fff; stroke: currentColor; }
+        .weather-svg .sun, .weather-svg .sun-rays { fill: #fff; stroke: #e6a700; }
+        .weather-svg .sun-rays { stroke-linecap: round; }
+        .weather-svg .precip { fill: none; stroke: var(--rain); stroke-linecap: round; }
+        .weather-svg .lightning { fill: #f2b600; stroke: #d99a00; stroke-linejoin: round; }
+        .weather-svg .fog { fill: none; stroke: #7a8790; stroke-linecap: round; }
+        .rain-chance-icon { width: .78em; height: .78em; vertical-align: -.1em; fill: none; stroke: currentColor; stroke-width: 2.5; }
         .currenttemp { font-size: clamp(3.2rem, 14vh, 10rem); line-height: .9; font-weight: 200; letter-spacing: -.05em; color: #111; }
         .currenttemp .dec { font-size: .42em; font-weight: 300; letter-spacing: 0; margin-left: .04em; vertical-align: baseline; opacity: .85; }
         .currentdesc { font-size: clamp(1rem, 2.8vh, 1.9rem); font-weight: 500; color: var(--muted); margin-top: .6vh; }
@@ -107,7 +115,7 @@
         .day .dicon {
             font-size: clamp(2rem, 6vh, 4.2rem);
             line-height: 1;
-            font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+            color: var(--brand-light);
         }
         .day .dtemp { font-weight: 600; font-size: clamp(1.1rem, 3.1vh, 2.3rem); white-space: nowrap; color: #111; }
         .day .dtemp i { font-style: normal; color: var(--muted); font-weight: 400; margin-right: .35em; }
@@ -184,16 +192,35 @@
     const forecastEl = document.getElementById('forecast');
     const chartEl = document.getElementById('chart');
 
+    // Draw icons as inline SVG so they work even when the kiosk image has no emoji fonts.
     const iconFor = (text = '') => {
         text = text.toLowerCase();
-        if (/onweer|bliksem/.test(text)) return '⛈️';
-        if (/regen|buien|nat/.test(text)) return '🌧️';
-        if (/sneeuw|ijzel/.test(text)) return '🌨️';
-        if (/mist|nevel/.test(text)) return '🌫️';
-        if (/zwaar bewolkt|bewolkt|wolken|grijs/.test(text)) return '☁️';
-        if (/half|licht bewolkt|opklar|wolkenvelden/.test(text)) return '⛅';
-        if (/zon|helder/.test(text)) return '☀️';
-        return '🌤️';
+        let type = 'partly';
+        if (/onweer|bliksem/.test(text)) type = 'storm';
+        else if (/regen|buien|nat/.test(text)) type = 'rain';
+        else if (/sneeuw|ijzel/.test(text)) type = 'snow';
+        else if (/mist|nevel/.test(text)) type = 'fog';
+        else if (/half|licht bewolkt|opklar|wolkenvelden/.test(text)) type = 'partly';
+        else if (/zwaar bewolkt|bewolkt|wolken|grijs/.test(text)) type = 'cloudy';
+        else if (/zon|helder/.test(text)) type = 'sun';
+
+        const sun = '<circle class="sun" cx="23" cy="24" r="9" stroke-width="2.5"/><g class="sun-rays" stroke-width="2.5"><path d="M23 7v4M23 37v4M6 24h4M36 24h4M11 12l3 3M32 33l3 3M35 12l-3 3M14 33l-3 3"/></g>';
+        const cloud = '<path class="cloud" stroke-width="2.7" stroke-linejoin="round" d="M17 45h29a9 9 0 0 0 1-18 15 15 0 0 0-29-2 10 10 0 0 0-1 20Z"/>';
+        const rain = '<g class="precip" stroke-width="3"><path d="m23 49-3 6M34 49l-3 6M45 49l-3 6"/></g>';
+        const snow = '<g class="precip" stroke-width="2.5"><path d="M22 49v9M18 51l8 5M26 51l-8 5M36 49v9M32 51l8 5M40 51l-8 5M50 49v9M46 51l8 5M54 51l-8 5"/></g>';
+        const fog = '<g class="fog" stroke-width="3"><path d="M12 50h40M17 56h30"/></g>';
+        const storm = '<path class="lightning" stroke-width="1.5" d="m34 42-9 13h7l-3 10 14-17h-8l5-6Z"/>';
+        let drawing;
+        switch (type) {
+            case 'sun': drawing = sun; break;
+            case 'partly': drawing = sun + cloud; break;
+            case 'cloudy': drawing = cloud; break;
+            case 'rain': drawing = cloud + rain; break;
+            case 'snow': drawing = cloud + snow; break;
+            case 'fog': drawing = cloud + fog; break;
+            default: drawing = cloud + storm;
+        }
+        return `<svg class="weather-svg" viewBox="0 0 64 64" aria-hidden="true">${drawing}</svg>`;
     };
 
     const val = (obj, ...keys) => {
@@ -300,7 +327,7 @@
                 <span class="dname">${dayName(d.day)}</span>
                 <span class="dicon">${iconFor(desc)}</span>
                 <span class="dtemp"><i>${num(min, 0)}°</i>${num(max, 0)}°</span>
-                <span class="drain">${rain != null ? '💧 ' + rain + '%' : '&nbsp;'}<small>${mm || '0 mm'}</small></span>
+                <span class="drain">${rain != null ? '<svg class="rain-chance-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-7.5 8-13a8 8 0 1 0-16 0c0 5.5 8 13 8 13Z"/><circle cx="12" cy="9" r="2.5"/></svg> ' + rain + '%' : '&nbsp;'}<small>${mm || '0 mm'}</small></span>
             </div>`;
             }).join('');
         } catch (e) {
